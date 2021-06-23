@@ -1,0 +1,9 @@
+---
+- name: ArgoCD | Deploy
+  include_tasks: deploy_helm.yaml
+
+- name: ArgoCD | Sealed Secrets Setup
+  include_tasks: deploy_sealed_secret_key.yaml
+
+- name: ArgoCD | Apps
+  include_tasks: deploy_apps.yaml

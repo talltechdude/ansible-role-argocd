@@ -1,0 +1,58 @@
+---
+- run_once: yes
+  delegate_to: localhost
+  environment:
+    K8S_AUTH_KUBECONFIG: "{{ kubeconfig_file | default('~/.kube/config') }}"
+    KUBECONFIG: "{{ kubeconfig_file | default('~/.kube/config') }}"
+  block:
+  - name: ArgoCD | Create dedicated namespace
+    k8s:
+      api_version: v1
+      kind: Namespace
+      name: "{{ argocd_namespace }}"
+      state: "{{ argocd_action | default('present') }}"
+    
+  - name: ArgoCD | Add Helm Repo
+    community.kubernetes.helm_repository:
+      name: argo
+      repo_url: https://argoproj.github.io/argo-helm
+      state: "{{ argocd_action | default('present') }}"
+  
+  - name: ArgoCD | Deploy ArgoCD
+    community.kubernetes.helm:
+      name: argocd
+      chart_ref: argo/argo-cd
+      chart_version: 3.6.8
+      release_namespace: "{{ argocd_namespace }}"
+      state: "{{ argocd_action | default('present') }}"
+      values:
+        configs:
+          secret:
+            argocdServerAdminPassword: "{{ argocd_admin_password | password_hash('bcrypt') }}"
+            argocdServerAdminPasswordMtime: "2021-01-01T00:00:00Z" # Any time in the past
+
+        server:
+          config:
+            url: "https://{{ argocd_hostname }}"
+            repositories: "{{ argocd_apps.repositories }}"
+            repository.credentials: "{{ argocd_apps.repository_credentials }}"
+            resource.customizations: |
+              bitnami.com/SealedSecret:
+                health.lua: |
+                  hs = {}
+                  hs.status = "Healthy"
+                  hs.message = "Controller doesn't report resource status"
+                  return hs
+
+          extraArgs:
+          - --insecure # offload TLS to ingress
+
+          ingress:
+            enabled: true
+            annotations: "{{ argocd_ingress_annotations | default({}) }}"
+            hosts:
+              - "{{ argocd_hostname }}"
+            tls:
+              - secretName: "{{ argocd_tls_cert }}"
+                hosts:
+                  - "{{ argocd_hostname }}"

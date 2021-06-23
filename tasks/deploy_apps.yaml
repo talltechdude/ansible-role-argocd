@@ -1,0 +1,34 @@
+---
+- name: ArgoCD | Deploy App of Apps
+  run_once: yes
+  delegate_to: localhost
+  environment:
+    K8S_AUTH_KUBECONFIG: "{{ kubeconfig_file | default('~/.kube/config') }}"
+    KUBECONFIG: "{{ kubeconfig_file | default('~/.kube/config') }}"
+  when: argocd_apps is defined
+  community.kubernetes.k8s:
+    state: "{{ argocd_action | default('present') }}"
+    definition:
+      apiVersion: argoproj.io/v1alpha1
+      kind: Application
+      name: "{{ argocd_apps.name }}"
+      version: "{{ argocd_apps.version }}"
+      type: application
+      metadata:
+        name: "{{ argocd_apps.name }}"
+        namespace: "{{ argocd_namespace }}"
+        # finalizers:
+        # - resources-finalizer.argocd.argoproj.io
+      spec:
+        destination:
+          namespace: "{{ argocd_namespace }}"
+          server: https://kubernetes.default.svc
+        project: default
+        source:
+          path: "{{ argocd_apps.path }}"
+          repoURL: "{{ argocd_apps.repoURL }}"
+          targetRevision: HEAD
+        syncPolicy:
+          automated:
+            selfHeal: true
+            prune: true
