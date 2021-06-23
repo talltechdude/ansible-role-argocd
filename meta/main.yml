@@ -1,4 +1,5 @@
 galaxy_info:
+  name: argocd
   author: TallTechDude <talltechdude@gmail.com>
   description: Ansible role for deploying ArgoCD and App of Apps to Kubernetes Cluster
   company: TallTechDude
