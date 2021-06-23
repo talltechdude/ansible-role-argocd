@@ -52,7 +52,3 @@
             annotations: "{{ argocd_ingress_annotations | default({}) }}"
             hosts:
               - "{{ argocd_hostname }}"
-            tls:
-              - secretName: "{{ argocd_tls_cert }}"
-                hosts:
-                  - "{{ argocd_hostname }}"
